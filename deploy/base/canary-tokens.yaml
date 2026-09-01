@@ -1,0 +1,25 @@
+# Lab canary token placeholders  -  substituted at ``make arm/`` apply time.
+# Distinct values per side (gateway vs sandbox) so boundary observations are
+# diagnostic. Not live secrets.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rtlab-canary-gateway
+  namespace: openclaw-gateway
+  labels:
+    openclaw.isolation/canary: "gateway"
+data:
+  gateway-token: "__RTLAB_CANARY_GATEWAY__"
+  sandbox-token: "__RTLAB_CANARY_SANDBOX__"
+  canary-token: "__RTLAB_CANARY_GATEWAY__"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rtlab-canary-sandbox
+  namespace: openclaw-sandbox
+  labels:
+    openclaw.isolation/canary: "sandbox"
+data:
+  sandbox-token: "__RTLAB_CANARY_SANDBOX__"
+  canary-token: "__RTLAB_CANARY_SANDBOX__"

@@ -1,0 +1,38 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    env:
+      # No cluster auth; no digest publish gate (scaffold zeros stay allowed).
+      KUBECONFIG: ""
+      # Limited PATH: kubectl installed below into ~/.local/bin; never oc.
+      PATH: /usr/bin:/bin:/home/runner/.local/bin
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install kubectl (manifest lint only; no cluster)
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin"
+          ver="$(curl -fsSL https://dl.k8s.io/release/stable.txt)"
+          curl -fsSL -o "$HOME/.local/bin/kubectl" \
+            "https://dl.k8s.io/release/${ver}/bin/linux/amd64/kubectl"
+          chmod +x "$HOME/.local/bin/kubectl"
+          command -v kubectl
+          command -v oc >/dev/null 2>&1 && { echo "oc must not be on CI PATH"; exit 1; } || true
+
+      - name: Sync deps (dev extra only; no scan extra)
+        run: uv sync --extra dev
+
+      - name: Offline pytest
+        run: uv run --extra dev pytest -q

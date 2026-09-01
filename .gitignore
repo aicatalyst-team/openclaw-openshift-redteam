@@ -1,0 +1,33 @@
+internal/
+.unpublished/
+slides/
+docs/11-how-it-works.md
+.superpowers/
+.env
+.env.*
+!.env.example
+# Harness-written run trees carry live canary tokens, worker hostnames, and
+# in-cluster Service DNS. Archive them under .unpublished/tenant-results/.
+# Aggregates (FACTS.md, README.md) stay tracked. To publish a redacted tree
+# deliberately: git add -f results/<arm>/<run-id>
+results/*/20*Z-*/
+results/*/INVALID/
+results/positive-control.json
+results/rescore-*.json
+results/rescore-*.jsonl
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.DS_Store
+*.report.html
+*.hitlog.jsonl
+.garak_*/
+.loop/
+.worktrees/

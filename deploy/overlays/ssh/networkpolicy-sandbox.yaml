@@ -1,0 +1,38 @@
+# Sandbox egress: DNS-only (5353 / named dns|dns-tcp). Ingress: SSH from gateway.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox-egress-dns
+  namespace: openclaw-sandbox
+spec:
+  podSelector:
+    matchLabels:
+      app: sandbox-sshd
+  policyTypes:
+    - Egress
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openclaw-gateway
+      ports:
+        - port: 2222
+          protocol: TCP
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+          podSelector:
+            matchLabels:
+              dns.operator.openshift.io/daemonset-dns: default
+      ports:
+        - port: dns
+          protocol: UDP
+        - port: dns-tcp
+          protocol: TCP
+        - port: 5353
+          protocol: UDP
+        - port: 5353
+          protocol: TCP

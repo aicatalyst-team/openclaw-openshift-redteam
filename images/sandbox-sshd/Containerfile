@@ -1,0 +1,32 @@
+# Base: UBI9 full (openssh-server). Pin linux/amd64 digest from
+# registry.access.redhat.com/ubi9/ubi:9.6 (re-pin after tag moves).
+FROM registry.access.redhat.com/ubi9/ubi@sha256:f3b9841ea7615b38fd271cf18ae235d8228d3369036eb175ded171c936808255
+
+# Pre-bake packages at build time. NetworkPolicy on the sandbox arm blocks
+# runtime `dnf install` (V1 landmine). Do not add dnf/yum to the entrypoint.
+RUN dnf install -y --nodocs openssh-server shadow-utils \
+    && dnf clean all \
+    && ssh-keygen -A \
+    && useradd -m -u 1000 sandbox \
+    && passwd -d sandbox \
+    && mkdir -p /etc/ssh/authorized_keys /home/sandbox/workspace \
+    && chown -R sandbox:sandbox /home/sandbox \
+    && chmod 755 /etc/ssh/authorized_keys
+
+# Default sshd config listens on 2222; ConfigMap may override at deploy time.
+RUN printf '%s\n' \
+    'Port 2222' \
+    'HostKey /etc/ssh/ssh_host_ed25519_key' \
+    'HostKey /etc/ssh/ssh_host_rsa_key' \
+    'PubkeyAuthentication yes' \
+    'PasswordAuthentication no' \
+    'PermitRootLogin no' \
+    'AuthorizedKeysFile /etc/ssh/authorized_keys/%u' \
+    'Subsystem sftp /usr/libexec/openssh/sftp-server' \
+    > /etc/ssh/sshd_config
+
+COPY entrypoint.sh /usr/local/bin/sandbox-sshd-entrypoint.sh
+RUN chmod 0755 /usr/local/bin/sandbox-sshd-entrypoint.sh
+
+EXPOSE 2222
+ENTRYPOINT ["/usr/local/bin/sandbox-sshd-entrypoint.sh"]

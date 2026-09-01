@@ -1,0 +1,31 @@
+# Throwaway: uid 1000 + privileged, seccomp Unconfined. Not sandbox-sshd.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rtlab-seccomp-uid1000-privileged
+  namespace: openclaw-sandbox
+  labels:
+    app: rtlab-operator-throwaway
+    rtlab.operator/seccomp: uid1000-privileged
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    node-role.kubernetes.io/kata-oc: ""
+  securityContext:
+    seccompProfile:
+      type: Unconfined
+  containers:
+    - name: probe
+      image: example.invalid/sandbox-sshd@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      imagePullPolicy: IfNotPresent
+      command: ["sleep", "3600"]
+      securityContext:
+        privileged: true
+        runAsUser: 1000
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi

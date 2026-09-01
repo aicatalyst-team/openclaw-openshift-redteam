@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespaces.yaml
+  - rbac.yaml
+  - canary-tokens.yaml
+  - canary-http.yaml
+  - openclaw-config.yaml
+  - openclaw-deployment.yaml
+  - openclaw-service.yaml
+# Image digests: digests.lock.yaml -> components/digest-pins (see deploy/README.md)
+components:
+  - ../components/digest-pins
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: openclaw-isolation-lab
+    includeSelectors: false

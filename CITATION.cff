@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+title: "OpenClaw isolation lab"
+message: "If you use this software or cite its measured corpus, please cite it as below."
+type: software
+authors:
+  - name: "r-bit-rry"
+    email: "34023431+r-bit-rry@users.noreply.github.com"
+version: "0.1.0"
+date-released: "2026-08-17"
+license: Apache-2.0
+repository-code: "https://github.com/aicatalyst-team/openclaw-openshift-redteam"
+keywords:
+  - agent-isolation
+  - red-team
+  - kubernetes
+  - openclaw
+notes: >-
+  Cite apiserver HTTP_CODE (docs/12-what-we-measured.md), the crossing spec
+  (docs/10-crossing.md), and taxonomy buckets from results/FACTS.md regenerated
+  from valid report.jsonl. Isolation claims use hit_reason plus the crossing spec.

@@ -1,0 +1,104 @@
+# OpenClaw SSH arm: sandbox.mode=all + backend=ssh are mandatory (target alone is insufficient).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openclaw-config
+  namespace: openclaw-gateway
+  labels:
+    app: openclaw
+    openclaw.isolation/arm: kata
+data:
+  openclaw.json: |
+    {
+      "gateway": {
+        "mode": "local",
+        "bind": "loopback",
+        "auth": {
+          "token": "__GATEWAY_TOKEN__"
+        },
+        "controlUi": {
+          "dangerouslyAllowHostHeaderOriginFallback": true,
+          "dangerouslyDisableDeviceAuth": true,
+          "allowedOrigins": ["https://__ROUTE_URL__"]
+        }
+      },
+      "tools": {
+        "profile": "full",
+        "allow": ["read", "exec", "bash", "group:fs", "group:runtime"],
+        "exec": {
+          "host": "sandbox",
+          "security": "full",
+          "ask": "off"
+        }
+      },
+      "agents": {
+        "defaults": {
+          "workspace": "~/.openclaw/workspace",
+          "model": { "primary": "openai/gpt-4o" },
+          "thinkingDefault": "medium",
+          "timeoutSeconds": 600,
+          "sandbox": {
+            "mode": "all",
+            "backend": "ssh",
+            "ssh": {
+              "target": "sandbox@sandbox-sshd.openclaw-sandbox.svc.cluster.local:2222",
+              "identityFile": "/home/node/.ssh/id_ed25519",
+              "strictHostKeyChecking": false
+            }
+          }
+        },
+        "list": [
+          {
+            "id": "redteam",
+            "name": "Red Team Agent",
+            "workspace": "~/.openclaw/workspace-redteam",
+            "model": { "primary": "openai/gpt-4o" },
+            "subagents": { "allowAgents": ["*"] },
+            "sandbox": {
+              "mode": "all",
+              "backend": "ssh",
+              "ssh": {
+                "target": "sandbox@sandbox-sshd.openclaw-sandbox.svc.cluster.local:2222",
+                "identityFile": "/home/node/.ssh/id_ed25519",
+                "strictHostKeyChecking": false
+              }
+            },
+            "tools": {
+              "exec": {
+                "host": "sandbox",
+                "security": "full",
+                "ask": "off"
+              }
+            }
+          }
+        ]
+      },
+      "models": {
+        "providers": {
+          "openai": {
+            "baseUrl": "__OPENAI_BASE_URL__",
+            "api": "openai-completions",
+            "apiKey": "dummy",
+            "models": [{
+              "id": "gpt-4o",
+              "name": "Qwen3.6-27B abliterated",
+              "reasoning": true,
+              "input": ["text"],
+              "contextWindow": 262144,
+              "maxTokens": 65536,
+              "compat": {
+                "thinkingFormat": "qwen-chat-template"
+              }
+            }]
+          }
+        }
+      },
+      "skills": {
+        "load": {
+          "extraDirs": ["~/.openclaw/skills"],
+          "watch": true,
+          "watchDebounceMs": 1000
+        }
+      },
+      "cron": { "enabled": false }
+    }

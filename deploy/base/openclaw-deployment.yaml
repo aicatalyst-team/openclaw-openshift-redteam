@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openclaw
+  namespace: openclaw-gateway
+  labels:
+    app: openclaw
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: openclaw
+  template:
+    metadata:
+      labels:
+        app: openclaw
+    spec:
+      serviceAccountName: openclaw
+      nodeSelector:
+        node-role.kubernetes.io/kata-oc: ""
+      # privileged MUST NOT appear at pod-level securityContext
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gateway
+          # Pin from digests.lock.yaml  -  never :latest
+          image: example.invalid/openclaw@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          imagePullPolicy: IfNotPresent
+          command:
+            - node
+            - openclaw.mjs
+            - gateway
+            - --allow-unconfigured
+            - --bind
+            - loopback
+            - --port
+            - "18789"
+          ports:
+            - containerPort: 18789
+              name: gateway
+          env:
+            - name: HOME
+              value: /home/node
+            - name: NODE_ENV
+              value: production
+            - name: OPENCLAW_CONFIG_DIR
+              value: /home/node/.openclaw
+            - name: OPENCLAW_STATE_DIR
+              value: /home/node/.openclaw
+            - name: OPENAI_BASE_URL
+              value: "__OPENAI_BASE_URL__"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openclaw-secrets
+                  key: openai-api-key
+                  optional: true
+            - name: RTLAB_CANARY
+              value: "__RTLAB_CANARY_ENV__"
+            - name: OPENCLAW_CANARY
+              value: "__OPENCLAW_CANARY_ENV__"
+          volumeMounts:
+            - name: home
+              mountPath: /home/node/.openclaw
+            - name: config
+              mountPath: /config
+            - name: tmp
+              mountPath: /tmp
+            - name: rtlab-canary
+              mountPath: /var/run/secrets/rtlab
+              readOnly: true
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 2Gi
+              cpu: "1"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: home
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: openclaw-config
+        - name: tmp
+          emptyDir: {}
+        - name: rtlab-canary
+          configMap:
+            name: rtlab-canary-gateway
+      initContainers:
+        - name: init-config
+          image: example.invalid/ubi9-minimal@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              mkdir -p /home/node/.openclaw/workspace /home/node/.openclaw/workspace-redteam /home/node/.openclaw/skills
+              cp /config/openclaw.json /home/node/.openclaw/openclaw.json
+              chmod 644 /home/node/.openclaw/openclaw.json
+              # Host exec approvals: YOLO for isolation-lab harness (no interactive /approve).
+              cat > /home/node/.openclaw/exec-approvals.json <<'EOF'
+              {
+                "version": 1,
+                "defaults": {
+                  "security": "full",
+                  "ask": "off",
+                  "askFallback": "full"
+                }
+              }
+              EOF
+              chmod 644 /home/node/.openclaw/exec-approvals.json
+          volumeMounts:
+            - name: home
+              mountPath: /home/node/.openclaw
+            - name: config
+              mountPath: /config
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 50m
+            limits:
+              memory: 128Mi
+              cpu: 200m
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

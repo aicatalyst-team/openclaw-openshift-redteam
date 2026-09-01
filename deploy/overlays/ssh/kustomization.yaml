@@ -1,0 +1,38 @@
+# ssh: runc sandbox via SSH, NetworkPolicy on, classifier off
+# OpenClaw config MUST set sandbox.mode=all and sandbox.backend=ssh
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - sandbox-sshd.yaml
+  - networkpolicy-gateway.yaml
+  - networkpolicy-sandbox.yaml
+# Re-apply digest pins so sibling sandbox-sshd.yaml is rewritten (base component
+# does not reach overlay-local resources).
+components:
+  - ../../components/digest-pins
+labels:
+  - pairs:
+      openclaw.isolation/arm: ssh
+    includeSelectors: false
+patches:
+  - path: openclaw-config-ssh.yaml
+  - target:
+      kind: Deployment
+      name: openclaw
+      namespace: openclaw-gateway
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: ssh-key
+          secret:
+            secretName: sandbox-ssh-key
+            defaultMode: 0400
+            optional: true
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: ssh-key
+          mountPath: /home/node/.ssh
+          readOnly: true

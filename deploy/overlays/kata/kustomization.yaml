@@ -1,0 +1,36 @@
+# kata: local KataContainers (RuntimeClass kata), SSH-into-guest, NetworkPolicy on.
+# Nested virt: runtimeClassName must be kata (not a remote-guest class).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - sandbox-sshd.yaml
+  - networkpolicy-gateway.yaml
+  - networkpolicy-sandbox.yaml
+components:
+  - ../../components/digest-pins
+labels:
+  - pairs:
+      openclaw.isolation/arm: kata
+    includeSelectors: false
+patches:
+  - path: openclaw-config-ssh.yaml
+  - target:
+      kind: Deployment
+      name: openclaw
+      namespace: openclaw-gateway
+    patch: |-
+      - op: add
+        path: /spec/template/spec/volumes/-
+        value:
+          name: ssh-key
+          secret:
+            secretName: sandbox-ssh-key
+            defaultMode: 0400
+            optional: true
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/-
+        value:
+          name: ssh-key
+          mountPath: /home/node/.ssh
+          readOnly: true

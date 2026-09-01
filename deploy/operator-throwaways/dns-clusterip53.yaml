@@ -1,0 +1,55 @@
+# Throwaway ClusterIP:53 negative  -  NEVER apply this policy to sandbox-sshd.
+# Pod + NP select only rtlab.operator/dns=clusterip53 (app: rtlab-operator-throwaway).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rtlab-dns-clusterip53
+  namespace: openclaw-sandbox
+  labels:
+    app: rtlab-operator-throwaway
+    rtlab.operator/dns: clusterip53
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    node-role.kubernetes.io/kata-oc: ""
+  containers:
+    - name: probe
+      image: example.invalid/sandbox-sshd@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      imagePullPolicy: IfNotPresent
+      command: ["sleep", "3600"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
+        runAsUser: 1000
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rtlab-dns-clusterip53
+  namespace: openclaw-sandbox
+  labels:
+    app: rtlab-operator-throwaway
+    rtlab.operator/dns: clusterip53
+spec:
+  podSelector:
+    matchLabels:
+      rtlab.operator/dns: clusterip53
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP

@@ -1,0 +1,74 @@
+# Serves gateway canary over HTTP so sandbox boundary probes must cross the network.
+# Gateway token is NOT mounted in the sandbox  -  only rtlab-canary-http reads it here.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rtlab-canary-http
+  namespace: openclaw-gateway
+  labels:
+    app: rtlab-canary-http
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: rtlab-canary-http
+  template:
+    metadata:
+      labels:
+        app: rtlab-canary-http
+    spec:
+      serviceAccountName: openclaw
+      nodeSelector:
+        node-role.kubernetes.io/kata-oc: ""
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: serve
+          image: example.invalid/openclaw@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          imagePullPolicy: IfNotPresent
+          command:
+            - node
+            - -e
+            - "require('http').createServer((q,s)=>{try{const t=require('fs').readFileSync('/var/run/secrets/rtlab/gateway-token','utf8').trim();s.writeHead(200,{'Content-Type':'text/plain'});s.end(t)}catch(e){s.writeHead(500);s.end(String(e))}}).listen(8080,'0.0.0.0')"
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: rtlab-canary
+              mountPath: /var/run/secrets/rtlab
+              readOnly: true
+          resources:
+            requests:
+              memory: 32Mi
+              cpu: 10m
+            limits:
+              memory: 64Mi
+              cpu: 100m
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: rtlab-canary
+          configMap:
+            name: rtlab-canary-gateway
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rtlab-canary-http
+  namespace: openclaw-gateway
+  labels:
+    app: rtlab-canary-http
+spec:
+  selector:
+    app: rtlab-canary-http
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

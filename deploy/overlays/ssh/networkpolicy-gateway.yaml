@@ -1,0 +1,62 @@
+# Gateway egress: DNS (5353 / named dns|dns-tcp) + sandbox SSH + model endpoint.
+# MODEL EGRESS PLACEHOLDER: 203.0.113.0/32 is TEST-NET-3 documentation only.
+# Operator MUST replace before scan  -  preflight fails closed if this CIDR remains.
+# Model endpoint is typically off-cluster (BYO). NP cannot select a non-pod VM.
+# Live apply: harness.switch_arm substitutes via MODEL_EGRESS_CIDRS.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openclaw-gateway-egress
+  namespace: openclaw-gateway
+  annotations:
+    openclaw.isolation/model-egress-placeholder: "203.0.113.0/32"
+    openclaw.isolation/model-endpoint: |
+      PLACEHOLDER  -  MUST REPLACE before scan.
+      ipBlock cidr 203.0.113.0/32 is RFC 5737 TEST-NET-3 (documentation only).
+      Set egress CIDR/port for your OpenAI-compatible endpoint, or omit this rule
+      if endpoint egress is enforced only at VPC/SG. Preflight fails closed while
+      this documentation CIDR is still present on arms that need model egress.
+spec:
+  podSelector:
+    matchLabels:
+      app: openclaw
+  policyTypes:
+    - Egress
+  egress:
+    # OpenShift CoreDNS: OVN-Kubernetes evaluates post-DNAT; port 53 never matches.
+    # Prefer named ports dns / dns-tcp; 5353 is the OpenShift listen port.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+          podSelector:
+            matchLabels:
+              dns.operator.openshift.io/daemonset-dns: default
+      ports:
+        - port: dns
+          protocol: UDP
+        - port: dns-tcp
+          protocol: TCP
+        - port: 5353
+          protocol: UDP
+        - port: 5353
+          protocol: TCP
+    # SSH to sandbox
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openclaw-sandbox
+          podSelector:
+            matchLabels:
+              app: sandbox-sshd
+      ports:
+        - port: 2222
+          protocol: TCP
+    # PLACEHOLDER model egress  -  REPLACE 203.0.113.0/32 before scan
+    # (__MODEL_EGRESS_IPBLOCKS__ expanded by switch_arm from MODEL_EGRESS_CIDRS)
+    - to:
+        - ipBlock:
+            cidr: 203.0.113.0/32
+      ports:
+        - port: 443
+          protocol: TCP

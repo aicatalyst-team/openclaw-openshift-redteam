@@ -1,0 +1,11 @@
+# bare: tools on gateway, NetworkPolicy off, classifier off
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+components:
+  - ../../components/digest-pins
+labels:
+  - pairs:
+      openclaw.isolation/arm: bare
+    includeSelectors: false

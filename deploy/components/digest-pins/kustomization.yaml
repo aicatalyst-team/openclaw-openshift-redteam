@@ -1,0 +1,17 @@
+# Image pins: name matches scaffold stubs already in manifests (example.invalid/*).
+# newName + digest come from digests.lock.yaml (scaffold: same stub; publish: real
+# registry/repo@digest). Keep name: as the stub so kustomize can rewrite YAML.
+# Publish: update digests.lock -> sync newName+digest here -> pytest tests/manifests.
+# See deploy/README.md. Strangers: leave scaffold zeros; do not set PUBLISH=1.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+images:
+  - name: example.invalid/openclaw
+    newName: example.invalid/openclaw
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+  - name: example.invalid/ubi9-minimal
+    newName: example.invalid/ubi9-minimal
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+  - name: example.invalid/sandbox-sshd
+    newName: example.invalid/sandbox-sshd
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000

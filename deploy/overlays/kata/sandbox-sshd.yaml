@@ -1,0 +1,103 @@
+# Local Kata sandbox sshd  -  RuntimeClass kata (nested virt, not a remote-guest class).
+# Privileged ONLY at container securityContext (never pod-level).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sandbox-sshd-config
+  namespace: openclaw-sandbox
+data:
+  sshd_config: |
+    Port 2222
+    HostKey /etc/ssh/ssh_host_ed25519_key
+    PubkeyAuthentication yes
+    PasswordAuthentication no
+    PermitRootLogin no
+    AuthorizedKeysFile /etc/ssh/authorized_keys/%u
+    Subsystem sftp /usr/libexec/openssh/sftp-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sandbox-sshd
+  namespace: openclaw-sandbox
+  labels:
+    app: sandbox-sshd
+  annotations:
+    openclaw.isolation/runtime: kata
+    openclaw.isolation/privileged-note: |
+      Container-level privileged may be required for sshd/chroot inside the guest.
+      Do not set pod-level privileged. This is local Kata (nested virt).
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sandbox-sshd
+  template:
+    metadata:
+      labels:
+        app: sandbox-sshd
+    spec:
+      runtimeClassName: kata
+      nodeSelector:
+        node-role.kubernetes.io/kata-oc: ""
+      # Do NOT set privileged at pod-level securityContext
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: sshd
+          image: example.invalid/sandbox-sshd@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 2222
+              name: ssh
+          # Required for sshd/chroot on runc; never promote to pod-level
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: sshd-config
+              mountPath: /etc/ssh/sshd_config
+              subPath: sshd_config
+            - name: authorized-keys
+              mountPath: /tmp/keys
+            - name: rtlab-canary
+              mountPath: /var/run/secrets/rtlab
+              readOnly: true
+          env:
+            - name: AUTHORIZED_KEYS_SRC
+              value: /tmp/keys/sandbox
+      volumes:
+        - name: sshd-config
+          configMap:
+            name: sandbox-sshd-config
+        - name: authorized-keys
+          secret:
+            secretName: sandbox-ssh-authorized-keys
+            optional: true
+        - name: rtlab-canary
+          configMap:
+            name: rtlab-canary-sandbox
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sandbox-sshd
+  namespace: openclaw-sandbox
+  labels:
+    app: sandbox-sshd
+spec:
+  selector:
+    app: sandbox-sshd
+  ports:
+    - name: ssh
+      port: 2222
+      targetPort: ssh
+      protocol: TCP

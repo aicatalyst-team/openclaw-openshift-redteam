@@ -1,0 +1,25 @@
+# Image digest pin lockfile  -  source of truth for deploy image refs.
+#
+# Scaffold (public clone): example.invalid placeholders. Operators re-pin to
+# a registry their nodes can pull after build/push (see images/*/README.md).
+#
+# Publish pin flow:
+#   1. Build/push each image (see images/*/README.md)
+#   2. dig=$(crane digest IMAGE_REF)  # or skopeo/podman inspect RepoDigest
+#   3. Update images.<key> here to registry/repo@sha256:<64 hex>
+#   4. Sync deploy/components/digest-pins images: newName+digest to this lock
+#   5. pytest tests/manifests  (do not set PUBLISH=1 until pins are real)
+#
+# Never commit :latest tags.
+# Format: name -> repo@sha256:<64 hex>
+#
+# Keys used by deploy manifests (via kustomize images: transformers):
+#   openclaw, ubi9_minimal, sandbox-sshd
+images:
+  openclaw: "example.invalid/openclaw@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  ubi9_minimal: "example.invalid/ubi9-minimal@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  sandbox-sshd: "example.invalid/sandbox-sshd@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+policy:
+  forbid_tags: ["latest"]
+  scaffold_repo_prefix: "example.invalid/"
+  zero_digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000"

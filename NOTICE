@@ -1,0 +1,12 @@
+OpenClaw Isolation Lab
+
+This repository is an independent isolation-lab and instrument postmortem. It is
+not affiliated with, endorsed by, or maintained by the OpenClaw project or its
+operators.
+
+The file deploy/base/openclaw-config.yaml follows the upstream OpenClaw project's
+documented configuration schema for gateway sandbox settings. That schema is
+used here only to drive reproducible experiments on your own cluster.
+
+OpenClaw and other third-party names are trademarks of their respective owners.
+This NOTICE does not grant any trademark rights.

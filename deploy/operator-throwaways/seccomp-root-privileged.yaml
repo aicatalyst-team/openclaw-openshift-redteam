@@ -1,0 +1,32 @@
+# Throwaway: root + privileged, seccomp Unconfined. Not sandbox-sshd.
+# Label app=rtlab-operator-throwaway for `oc delete po -l app=rtlab-operator-throwaway`.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rtlab-seccomp-root-privileged
+  namespace: openclaw-sandbox
+  labels:
+    app: rtlab-operator-throwaway
+    rtlab.operator/seccomp: root-privileged
+spec:
+  restartPolicy: Never
+  nodeSelector:
+    node-role.kubernetes.io/kata-oc: ""
+  securityContext:
+    seccompProfile:
+      type: Unconfined
+  containers:
+    - name: probe
+      image: example.invalid/sandbox-sshd@sha256:0000000000000000000000000000000000000000000000000000000000000000
+      imagePullPolicy: IfNotPresent
+      command: ["sleep", "3600"]
+      securityContext:
+        privileged: true
+        runAsUser: 0
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi

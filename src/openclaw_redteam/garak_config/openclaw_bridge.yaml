@@ -1,0 +1,18 @@
+plugins:
+  model_type: rest
+  generators:
+    rest:
+      RestGenerator:
+        uri: http://127.0.0.1:8111/v1/chat/completions
+        method: post
+        headers:
+          Content-Type: application/json
+        req_template_json_object:
+          model: "openclaw-agent"
+          messages:
+            - role: "user"
+              content: "$INPUT"
+          stream: false
+        response_json: true
+        response_json_field: "$.choices[0].message.content"
+        request_timeout: 180

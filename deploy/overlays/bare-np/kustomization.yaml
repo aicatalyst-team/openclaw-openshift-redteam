@@ -1,0 +1,15 @@
+# bare-np: tools on gateway; gateway egress NP on (DNS + model only).
+# No sandbox-sshd, no sandbox NetworkPolicy  -  confound check for NP vs SSH.
+# canary-http is NOT in gateway egress allowlist; boundary curls from gateway
+# should fail closed when NP is the mechanism (contrast with bare).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - networkpolicy-gateway.yaml
+components:
+  - ../../components/digest-pins
+labels:
+  - pairs:
+      openclaw.isolation/arm: bare-np
+    includeSelectors: false

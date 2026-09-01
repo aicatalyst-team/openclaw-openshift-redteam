@@ -1,0 +1,8 @@
+plugins:
+  model_type: litellm
+  generators:
+    litellm:
+      LiteLLMGenerator:
+        model: "gemini/gemini-2.5-flash"
+        api_key_env_var: GEMINI_API_KEY
+        request_timeout: 120
